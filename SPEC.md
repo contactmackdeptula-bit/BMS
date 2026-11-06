@@ -1,6 +1,6 @@
 # SPEC — Church buildings platform ("Fabric", working name)
 
-Status: **rebuilt 6 Nov 2026** from the design handoff (`docs/UI-HANDOFF.md`) and the decisions recorded in it. The original SPEC.md of 26 Oct 2026 was not saved anywhere retrievable. Items marked **[ASSUMPTION]** were not in any surviving record and need confirming.
+Status: **rebuilt 6 Nov 2026** from the design handoff (`docs/UI-HANDOFF.md`) and the decisions recorded in it. The original SPEC.md of 26 Oct 2026 was not saved anywhere retrievable. Choices not in any surviving record were confirmed by Mack on 6 Nov 2026.
 
 This file governs stack, data model, tenancy, security and milestones. `docs/UI-HANDOFF.md` governs screens, components, tokens, states and AI touchpoints. Where they disagree, stop and ask.
 
@@ -36,18 +36,18 @@ Contractor accounts or logins, quoting, payments, collective purchasing, Mainten
 | Database | Cloudflare D1 (SQLite) |
 | Files | Cloudflare R2 (documents, report PDFs, photos) |
 | ORM / migrations | Drizzle ORM + drizzle-kit |
-| API | Hono on Workers **[ASSUMPTION]** |
-| Front end | React + TypeScript + Vite, React Router, served as Workers static assets from the same Worker **[ASSUMPTION]** |
+| API | Hono on Workers |
+| Front end | React + TypeScript + Vite, React Router, served as Workers static assets from the same Worker |
 | Styling | Plain CSS with the custom properties in UI-HANDOFF §4; no CSS framework |
 | Scheduled jobs | Workers Cron Triggers (daily reminder run) |
 | Background work | Cloudflare Queues for QI extraction and document reading |
-| Email | Transactional email through a provider adapter (Brevo first, as it is already in use) **[ASSUMPTION]** |
-| Exports | `.docx` generated server-side (`docx` package); PDF rendered from the same HTML with Cloudflare Browser Rendering **[ASSUMPTION]** |
+| Email | Transactional email through a provider adapter (Brevo first, as it is already in use) |
+| Exports | `.docx` generated server-side (`docx` package); PDF rendered from the same HTML with Cloudflare Browser Rendering |
 | AI | Claude API, called only from the Worker on the product's own account. Model and prompt versions are config. |
 | Tests | Vitest (unit + Workers pool for D1), Playwright for end-to-end |
 | Fonts | Inter and Source Serif 4, self-hosted woff2 |
 
-Environments: `dev` (local, `wrangler dev` with local D1/R2), `staging`, `production`. Secrets via `wrangler secret`: `ANTHROPIC_API_KEY`, `EMAIL_API_KEY`, `SESSION_SECRET`.
+Environments: `dev` (local, `wrangler dev` with local D1/R2), `staging`, `production`. Secrets via `wrangler secret`: `ANTHROPIC_API_KEY`, `EMAIL_API_KEY`, `APP_URL`.
 
 ---
 
@@ -58,7 +58,7 @@ Environments: `dev` (local, `wrangler dev` with local D1/R2), `staging`, `produc
 3. **Diocese over parish.** A diocese organisation can be the parent of a parish organisation. Estates roles on the diocese can **read** the parish's records and **write their own** estates notes and programmes. They cannot edit parish records. Estates notes are never shown to parish users unless explicitly shared (`estatesNote.sharedWithParish`).
 4. **Parish users never see the estates shell** or other parishes.
 5. **Files.** R2 keys are `org/{orgId}/building/{buildingId}/{documentId}`. Files are only ever served through the Worker after a scope check, with short-lived signed URLs. No public bucket.
-6. **Auth.** Passwordless email magic link, 15-minute single-use token, session cookie (`HttpOnly`, `Secure`, `SameSite=Lax`), 30-day sliding sessions **[ASSUMPTION]**. Invitations only; no open sign-up in v1.
+6. **Auth.** Email and password (decided 6 Nov 2026). Passwords hashed with PBKDF2-SHA256 (Web Crypto, 100,000 iterations, 16-byte random salt), minimum 10 characters, checked against a short list of common passwords. Session cookie (`HttpOnly`, `Secure`, `SameSite=Lax`) holding a random token stored hashed in D1; 30-day sliding sessions. After 10 failed attempts on an email in 15 minutes, logins for that email are refused for 15 minutes. Password reset by emailed single-use link (1 hour). Accounts are created by invitation only in v1; the invite link lets the person set their own password. All sessions are ended when a password changes.
 7. **Audit.** Every create/update/delete writes an `auditEvent` (who, what, before/after summary, when). Frequency changes on compliance items are logged explicitly (UI-HANDOFF §8).
 8. **AI data handling.** The PCC is the controller, the product the processor, the AI provider a sub-processor on API terms with no training on customer data. Named in the privacy notice and the pilot agreement. Contractor contact details are personal data under the same notice.
 9. **Uploads.** Max 50 MB per file; allowed types PDF, JPEG, PNG, HEIC, DOCX, XLSX. Content type checked server-side.
@@ -74,7 +74,7 @@ Environments: `dev` (local, `wrangler dev` with local D1/R2), `staging`, `produc
 | `churchwarden` | parish org | Read/write all building records; approve logbook entries; build and export the fabric report |
 | `treasurer` | parish org | Read all; write jobs and costs; upload documents |
 | `member` | parish org | Read all; upload documents; log jobs and checklist results (fabric volunteer, incumbent, administrator, PCC secretary) |
-| `inspector` | one building | Read-only on Quinquennial and Documents (inspecting architect) **[ASSUMPTION: invited, read-only]** |
+| `inspector` | one building | Read-only on Quinquennial and Documents (inspecting architect) (invited, read-only) |
 | `estates_admin` | diocese org | Organisation settings and users; everything `estates` can do |
 | `estates` | diocese org | Read every descendant building; write estates notes, programmes, and diocese-instructed jobs |
 
@@ -96,10 +96,12 @@ All ids are text (ULID). All tables have `createdAt`, `updatedAt` (ISO 8601 text
 | apcmDate | date, null | next APCM; anchors the churchwardens' inspection and fabric report |
 | timezone | text | default `Europe/London` |
 
-### user, membership, session, magicLinkToken
-- `user`: id, email (unique), name, phone (null).
+### user, membership, session, authToken, loginAttempt
+- `user`: id, email (unique, lower-cased), name, phone (null), passwordHash (null until invite accepted), passwordChangedAt.
 - `membership`: id, userId, orgId, role (see 4), buildingId (null except for `inspector`), receivesReminders (bool).
-- `session`, `magicLinkToken`: standard; tokens stored hashed.
+- `session`: id (hash of cookie token), userId, expiresAt, lastSeenAt.
+- `authToken`: id (hash), userId (null for invites), email, kind (`invite` \| `password_reset`), orgId and role (invites), expiresAt, usedAt.
+- `loginAttempt`: email, attemptedAt, ok — for the lockout rule.
 
 ### building
 | field | type | notes |
@@ -216,7 +218,7 @@ Seeded on building creation. The first 14 always; the last two only when the pro
 | 15 | Lift inspection (LOLER) | 6 months | | Lift engineer — only if `hasLift` |
 | 16 | Legionella risk assessment | 24 months | | Competent person — only if `hasWaterSystems` |
 
-Frequencies are starting guidance and editable per item **[ASSUMPTION for 15 and 16]**.
+Frequencies are starting guidance and editable per item.
 
 ---
 
@@ -244,7 +246,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 
 | # | Milestone | Includes | UI-HANDOFF steps |
 |---|---|---|---|
-| M1 | Foundations | Repo, Worker, D1, R2, Drizzle schema and migrations, tenancy repository layer + tests, magic-link auth, roles, audit, tokens and shared components with `/components` page | 1, 2 |
+| M1 | Foundations | Repo, Worker, D1, R2, Drizzle schema and migrations, tenancy repository layer + tests, password auth with invites and reset, roles, audit, tokens and shared components with `/components` page | 1, 2 |
 | M2 | Compliance calendar | Building profile, seeding, occurrences, document upload, status rules (tests first), month strip, daily reminders | 3 |
 | M3 | Jobs, contractors, documents, dashboard | Job log, contractor book, documents list, draft logbook entries, church dashboard | 4, 5 |
 | M4 | Quinquennial | Upload, queued extraction, review screen, task table, permission flags, routine items into the calendar, extraction test suite | 6 |
@@ -256,7 +258,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 
 ## 10. Open points
 
-- Confirm or change every **[ASSUMPTION]** above (API framework, React, auth method, email provider, PDF rendering, inspector role, items 15–16).
+- Decided 6 Nov 2026: Hono, React, Brevo, Browser Rendering, inspector role, items 15–16; login changed to passwords.
 - Which inspecting architects' reports form the extraction test suite.
 - Pilot PCCs to sign the data and ownership agreement before real documents are uploaded.
 - Final product name.
