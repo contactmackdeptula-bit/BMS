@@ -33,9 +33,10 @@ export async function dashboard(scope: BuildingScope) {
   const tasks = current ? await scope.db.select().from(task).where(eq(task.qiReportId, current.id)).all() : [];
   const bands = BANDS.map((band) => {
     const inBand = tasks.filter((t) => t.band === band);
-    return { band, total: inBand.length, done: inBand.filter((t) => t.status === "done").length };
+    return { band, total: inBand.length, done: band === "M" ? inBand.length : inBand.filter((t) => t.status === "done").length };
   });
-  const open = tasks.filter((t) => t.status !== "done");
+  // Routine (band M) items live on the compliance calendar, so they don't count as open.
+  const open = tasks.filter((t) => t.status !== "done" && t.band !== "M");
   const qi = current
     ? {
         reportId: current.id,

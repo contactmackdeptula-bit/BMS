@@ -10,6 +10,7 @@ import { nowIso } from "../lib/time";
 import type { BuildingScope } from "../tenancy";
 import { recordOccurrence } from "./compliance";
 import { contractorInOrg } from "./contractors";
+import { completeTaskFromJob, taskInBuilding } from "./quinquennial";
 
 const isDate = (v: unknown): v is string => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
@@ -20,7 +21,7 @@ export type JobInput = Partial<{
   costPence: number | null;
   status: "planned" | "done";
   notes: string | null;
-}> & { documentIds?: string[]; complianceItemId?: string | null };
+}> & { documentIds?: string[]; complianceItemId?: string | null; taskId?: string | null };
 
 export function jobFields(body: Record<string, unknown>): JobInput {
   const out: JobInput = {};
@@ -52,6 +53,7 @@ export function jobFields(body: Record<string, unknown>): JobInput {
     out.documentIds = body.documentIds.map(str).filter(Boolean).slice(0, 20);
   }
   if ("complianceItemId" in body) out.complianceItemId = str(body.complianceItemId) || null;
+  if ("taskId" in body) out.taskId = str(body.taskId) || null;
   return out;
 }
 
@@ -117,10 +119,12 @@ export async function createJob(scope: BuildingScope, input: JobInput & { title:
     ).id;
   }
 
+  if (input.taskId) await taskInBuilding(scope, input.taskId);
   await scope.db.insert(job).values({
     id,
     orgId: scope.orgId,
     buildingId: scope.buildingId,
+    taskId: input.taskId ?? null,
     title: input.title,
     doneOn: input.doneOn ?? null,
     contractorId: input.contractorId ?? null,
@@ -131,6 +135,7 @@ export async function createJob(scope: BuildingScope, input: JobInput & { title:
   });
   for (const d of docs) await scope.db.insert(jobDocument).values({ jobId: id, documentId: d }).onConflictDoNothing();
   await audit(scope.db, { orgId: scope.orgId, userId: scope.userId, entity: "job", entityId: id, action: "created", summary: { title: input.title, costPence: input.costPence ?? null } });
+  if (input.taskId && status === "done") await completeTaskFromJob(scope, input.taskId, id);
   await draftLogbookIfDue(scope, id);
   return id;
 }
@@ -139,7 +144,7 @@ export async function updateJob(scope: BuildingScope, id: string, input: JobInpu
   scope.require("records.write");
   const before = await jobRow(scope, id);
   if (input.contractorId) await contractorInOrg(scope, input.contractorId);
-  const { documentIds, complianceItemId: _ignored, ...fields } = input;
+  const { documentIds, complianceItemId: _ignored, taskId: _task, ...fields } = input;
   const next = { ...before, ...fields };
   if (next.status === "done" && !next.doneOn) throw badRequest("Enter the date the job was done.");
   if (Object.keys(fields).length) await scope.db.update(job).set({ ...fields, updatedAt: nowIso() }).where(eq(job.id, id));
@@ -150,6 +155,7 @@ export async function updateJob(scope: BuildingScope, id: string, input: JobInpu
     }
   }
   await audit(scope.db, { orgId: scope.orgId, userId: scope.userId, entity: "job", entityId: id, action: "updated", summary: { fields: Object.keys(input) } });
+  if (before.taskId && before.status !== "done" && next.status === "done") await completeTaskFromJob(scope, before.taskId, id);
   await draftLogbookIfDue(scope, id);
 }
 

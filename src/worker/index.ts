@@ -8,6 +8,7 @@ import { buildingRoutes } from "./routes/buildings";
 import { orgRoutes } from "./routes/orgs";
 import { complianceRoutes } from "./routes/compliance";
 import { recordRoutes } from "./routes/records";
+import { quinquennialRoutes } from "./routes/quinquennial";
 import { scheduledReminders } from "./reminders";
 import type { Env } from "./env";
 
@@ -43,6 +44,7 @@ app.route("/auth", authRoutes);
 app.route("/buildings", buildingRoutes);
 app.route("/buildings", complianceRoutes);
 app.route("/buildings", recordRoutes);
+app.route("/buildings", quinquennialRoutes);
 app.route("/orgs", orgRoutes);
 
 app.get("/health", (c) => c.json({ ok: true }));
