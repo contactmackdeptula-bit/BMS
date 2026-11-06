@@ -14,6 +14,10 @@ import { ForgotPasswordPage, InvitePage, LoginPage, ResetPasswordPage } from "./
 import { BuildingProfilePage, ChurchLayout, ComingSoon, Home, SettingsPage } from "./pages/church";
 import { ComponentsPage } from "./pages/components";
 import { CompliancePage } from "./pages/compliance";
+import { ContractorsPage } from "./pages/contractors";
+import { DashboardPage } from "./pages/dashboard";
+import { DocumentsPage } from "./pages/documents";
+import { JobsPage } from "./pages/jobs";
 import { EstatesComingSoon, EstatesLayout, EstatesOverview } from "./pages/estates";
 import { RequireSession } from "./session";
 
@@ -37,13 +41,13 @@ const router = createBrowserRouter([
         path: "/b/:buildingId",
         element: <ChurchLayout />,
         children: [
-          { index: true, element: <ComingSoon section="dashboard" /> },
+          { index: true, element: <DashboardPage /> },
           { path: "building", element: <BuildingProfilePage /> },
           { path: "compliance", element: <CompliancePage /> },
           { path: "quinquennial", element: <ComingSoon section="quinquennial" /> },
-          { path: "jobs", element: <ComingSoon section="jobs" /> },
-          { path: "documents", element: <ComingSoon section="documents" /> },
-          { path: "contractors", element: <ComingSoon section="contractors" /> },
+          { path: "jobs", element: <JobsPage /> },
+          { path: "documents", element: <DocumentsPage /> },
+          { path: "contractors", element: <ContractorsPage /> },
           { path: "reports", element: <ComingSoon section="reports" /> },
           { path: "settings", element: <SettingsPage /> },
         ],

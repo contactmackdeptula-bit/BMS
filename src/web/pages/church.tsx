@@ -159,12 +159,7 @@ function PageSkeleton() {
 
 // ---------- Not built yet ----------
 const MILESTONE: Partial<Record<ChurchSection, string>> = {
-  dashboard: "milestone 3",
-  compliance: "milestone 2",
   quinquennial: "milestone 4",
-  jobs: "milestone 3",
-  documents: "milestone 3",
-  contractors: "milestone 3",
   reports: "milestone 5",
 };
 

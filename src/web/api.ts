@@ -26,7 +26,7 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 
 export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
-async function upload(buildingId: string, file: File, meta: { type: string; title?: string; documentDate?: string | null }) {
+async function upload(buildingId: string, file: File, meta: { type: string; title?: string; documentDate?: string | null; expiresOn?: string | null }) {
   if (file.size > MAX_UPLOAD_BYTES) throw new ApiError("That file is over 50 MB.", 400);
   let res: Response;
   try {
@@ -39,6 +39,7 @@ async function upload(buildingId: string, file: File, meta: { type: string; titl
         "x-document-type": meta.type,
         "x-document-title": encodeURIComponent(meta.title || file.name.replace(/\.[^.]+$/, "")),
         ...(meta.documentDate ? { "x-document-date": meta.documentDate } : {}),
+        ...(meta.expiresOn ? { "x-document-expires": meta.expiresOn } : {}),
       },
       body: file,
     });
@@ -138,3 +139,93 @@ export type Building = {
 };
 
 export type BuildingAccess = { roles: Role[]; canEdit: boolean; viaEstates: boolean };
+
+export type Job = {
+  id: string;
+  title: string;
+  doneOn: string | null;
+  contractorId: string | null;
+  contractorName: string | null;
+  costPence: number | null;
+  status: "planned" | "done";
+  notes: string | null;
+  paperwork: { id: string; type: string; title: string }[];
+  awaitingInvoice: boolean;
+  logbook: "draft" | "approved" | null;
+};
+export type Spend = { year: number; totalPence: number; jobCount: number; awaitingInvoice: number };
+export type LogbookEntry = {
+  id: string;
+  jobId: string | null;
+  entryDate: string;
+  work: string;
+  who: string | null;
+  costPence: number | null;
+  permissionRef: string | null;
+  status: "draft" | "approved";
+};
+export type Contractor = {
+  id: string;
+  name: string;
+  trade: string | null;
+  contactName: string | null;
+  phone: string | null;
+  email: string | null;
+  website: string | null;
+  accreditation: string | null;
+  notes: string | null;
+  jobCount: number;
+  totalPence: number;
+  lastJobOn: string | null;
+};
+export type DocumentRow = {
+  id: string;
+  type: string;
+  title: string;
+  mimeType: string;
+  sizeBytes: number;
+  documentDate: string | null;
+  expiresOn: string | null;
+  createdAt: string;
+  uploadedBy: string | null;
+  usedFor: string[];
+};
+export type Tone = "danger" | "warn" | "info" | "ok" | "neutral";
+export type Dashboard = {
+  today: string;
+  stats: {
+    overdue: { count: number; names: string[] };
+    dueSoon: { count: number; next: { name: string; nextDue: string | null } | null };
+    notRecorded: number;
+    spend: Spend;
+  };
+  attention: { kind: string; pill: { tone: Tone; label: string }; title: string; detail: string; action: { label: string; href: string } }[];
+  attentionTotal: number;
+  qi: null | {
+    reportId: string;
+    inspectedOn: string | null;
+    nextDueOn: string | null;
+    total: number;
+    done: number;
+    open: number;
+    openA: number;
+    bands: { band: string; total: number; done: number }[];
+    estimateLowPence: number;
+    estimateHighPence: number;
+    needPermission: number;
+  };
+  recentJobs: Job[];
+  canWrite: boolean;
+};
+
+export const DOC_TYPES = [
+  { value: "certificate", label: "Certificate" },
+  { value: "invoice", label: "Invoice" },
+  { value: "quote", label: "Quote" },
+  { value: "insurance_schedule", label: "Insurance schedule" },
+  { value: "report", label: "Report" },
+  { value: "survey", label: "Survey" },
+  { value: "photo", label: "Photo" },
+  { value: "other", label: "Other" },
+];
+export const DOC_LABEL: Record<string, string> = Object.fromEntries(DOC_TYPES.map((d) => [d.value, d.label]));

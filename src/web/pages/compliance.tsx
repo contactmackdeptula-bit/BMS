@@ -45,7 +45,14 @@ export function CompliancePage() {
   const [data, setData] = useState<Calendar | null>(null);
   const [error, setError] = useState<ApiError | null>(null);
   const [month, setMonth] = useState<string | null>(null);
-  const [openItem, setOpenItem] = useState<string | null>(null);
+  // ?item= opens that check's sheet (the dashboard links here).
+  const openItem = params.get("item");
+  const setOpenItem = (id: string | null) => {
+    const next = new URLSearchParams(params);
+    if (id) next.set("item", id);
+    else next.delete("item");
+    setParams(next, { replace: true });
+  };
   const [adding, setAdding] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
   const filter = (params.get("filter") as Filter) || "all";

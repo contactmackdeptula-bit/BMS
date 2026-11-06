@@ -381,7 +381,8 @@ a.stat:hover {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--space-2);
   }
-  .attention-row .btn {
+  .attention-row .btn,
+  .attention-row .pill {
     justify-self: start;
   }
 }
@@ -970,4 +971,43 @@ textarea.control {
   .pill {
     border: 1px solid currentColor;
   }
+}
+
+.field.label-hidden > label {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.field.label-hidden .control {
+  min-width: 140px;
+}
+
+/* ---------- Contractor cards ---------- */
+.contractor-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--space-5);
+}
+.contractor-card {
+  gap: 10px;
+}
+.contractor-card .trade {
+  font-size: var(--text-base-size);
+  color: var(--ink-muted);
+}
+.contractor-card .lines {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: var(--text-md-size);
+  overflow-wrap: anywhere;
+}
+.contractor-card .stats {
+  font-size: var(--text-base-size);
+  color: var(--ink-muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 10px;
 }

@@ -252,7 +252,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 |---|---|---|---|
 | M1 | Foundations | Repo, Worker, D1, R2, Drizzle schema and migrations, tenancy repository layer + tests, password auth with invites and reset, roles, audit, tokens and shared components with `/components` page | 1, 2 |
 | M2 | Compliance calendar | Building profile, seeding, occurrences, document upload, status rules (tests first), month strip, daily reminders. The calendar's export is the browser's print / save as PDF with a print stylesheet; server-rendered PDFs arrive with M5 | 3 |
-| M3 | Jobs, contractors, documents, dashboard | Job log, contractor book, documents list, draft logbook entries, church dashboard | 4, 5 |
+| M3 | Jobs, contractors, documents, dashboard | Job log (planned and done, paperwork, awaiting-invoice flag, yearly spend; a job can also record a compliance check), organisation-wide contractor book, documents list with expiry and where each is used, draft logbook entries approved by churchwardens, church dashboard with setup steps for a new building | 4, 5 |
 | M4 | Quinquennial | Upload, queued extraction, review screen, task table, permission flags, routine items into the calendar, extraction test suite | 6 |
 | M5 | Annual fabric report | Builder, preview, Word and PDF export saved to Documents | 7 |
 | M6 | Phone and offline | Responsive phone layout, This week, checklists, camera logging, offline queue | 8 |
