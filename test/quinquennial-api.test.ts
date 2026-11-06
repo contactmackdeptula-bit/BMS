@@ -101,6 +101,8 @@ describe("entering and publishing a report", () => {
   it("lets a treasurer move progress on but not reword the inspector's text", async () => {
     expect((await treasurer.patch(`/api/buildings/${church}/tasks/${ids.parapet}`, { status: "quoted" })).status).toBe(200);
     expect((await treasurer.patch(`/api/buildings/${church}/tasks/${ids.parapet}`, { text: "changed" })).status).toBe(403);
+    // Done only through a logged job.
+    expect((await warden.patch(`/api/buildings/${church}/tasks/${ids.parapet}`, { status: "done" })).status).toBe(400);
     expect((await inspector.patch(`/api/buildings/${church}/tasks/${ids.parapet}`, { status: "done" })).status).toBe(403);
     expect((await qi(inspector)).tasks).toHaveLength(5); // the inspector can read
   });

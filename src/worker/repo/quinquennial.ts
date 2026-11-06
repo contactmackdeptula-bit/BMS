@@ -276,6 +276,8 @@ export async function updateTask(scope: BuildingScope, taskId: string, input: Ta
   const editsWording = ["ref", "text", "band", "location", "estimateLowPence", "estimateHighPence", "pageNumber"].some((k) => k in input);
   scope.require(editsWording ? "building.edit" : "records.write");
   const t = await taskRow(scope, taskId);
+  // Done means a job is on record (UI-HANDOFF §9): log the job, which completes the item.
+  if (input.status === "done" && !t.jobId) throw badRequest("Log the job that did this work, and the item is marked done.");
   await checkWaitingOn(scope, t.qiReportId, t.id, input.waitingOnTaskId);
   const status = input.waitingOnTaskId ? "waiting" : input.status;
   await scope.db.update(task).set({ ...input, ...(status ? { status } : {}), updatedAt: nowIso() }).where(eq(task.id, t.id));

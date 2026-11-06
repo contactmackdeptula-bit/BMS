@@ -24,17 +24,22 @@ export function JobSheet({
   buildingId,
   today,
   job,
+  taskId,
+  presetTitle,
   onClose,
   onSaved,
 }: {
   buildingId: string;
   today: string;
   job?: Job | null;
+  /** Logging the job for a quinquennial recommendation completes it. */
+  taskId?: string;
+  presetTitle?: string;
   onClose: () => void;
   onSaved: (message: string) => void | Promise<void>;
 }) {
   const editing = Boolean(job);
-  const [title, setTitle] = useState(job?.title ?? "");
+  const [title, setTitle] = useState(job?.title ?? presetTitle ?? "");
   const [status, setStatus] = useState<"done" | "planned">(job?.status ?? "done");
   const [doneOn, setDoneOn] = useState(job?.doneOn ?? (job ? "" : today));
   const [contractorId, setContractorId] = useState(job?.contractorId ?? "");
@@ -78,6 +83,7 @@ export function JobSheet({
         notes,
         documentIds,
         ...(complianceItemId ? { complianceItemId } : {}),
+        ...(taskId ? { taskId } : {}),
       };
       if (job) await api.patch(`/buildings/${buildingId}/jobs/${job.id}`, body);
       else await api.post(`/buildings/${buildingId}/jobs`, body);
@@ -127,7 +133,7 @@ export function JobSheet({
         />
         {contractorId === "__new" && <Input label="New contractor's name" value={newContractor} onChange={(e) => setNewContractor(e.target.value)} hint="Added to your address book; fill in their details on the Contractors page." />}
         <Input label="Cost (£)" inputMode="decimal" value={cost} onChange={(e) => setCost(e.target.value)} placeholder="1,150" hint="Leave empty if it's not known yet." />
-        {!editing && status === "done" && checks.length > 0 && (
+        {!editing && !taskId && status === "done" && checks.length > 0 && (
           <Select
             label="Was this one of your regular checks?"
             value={complianceItemId}

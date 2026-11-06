@@ -1011,3 +1011,21 @@ textarea.control {
   border-top: 1px solid var(--rule);
   padding-top: 10px;
 }
+
+/* ---------- Quinquennial band tiles ---------- */
+.band-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.band-tile strong {
+  font-size: 20px;
+}
+.band-tile .muted {
+  font-size: var(--text-base-size);
+}
