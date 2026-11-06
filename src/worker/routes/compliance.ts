@@ -81,6 +81,7 @@ complianceRoutes.post("/:buildingId/documents", async (c) => {
     type: c.req.header("x-document-type") ?? "other",
     title: decodeURIComponent(c.req.header("x-document-title") ?? ""),
     documentDate: c.req.header("x-document-date") || null,
+    expiresOn: c.req.header("x-document-expires") || null,
   });
   return c.json({ document: doc }, 201);
 });

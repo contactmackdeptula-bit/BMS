@@ -7,6 +7,7 @@ import { authRoutes } from "./routes/auth";
 import { buildingRoutes } from "./routes/buildings";
 import { orgRoutes } from "./routes/orgs";
 import { complianceRoutes } from "./routes/compliance";
+import { recordRoutes } from "./routes/records";
 import { scheduledReminders } from "./reminders";
 import type { Env } from "./env";
 
@@ -41,6 +42,7 @@ app.use("*", async (c, next) => {
 app.route("/auth", authRoutes);
 app.route("/buildings", buildingRoutes);
 app.route("/buildings", complianceRoutes);
+app.route("/buildings", recordRoutes);
 app.route("/orgs", orgRoutes);
 
 app.get("/health", (c) => c.json({ ok: true }));
