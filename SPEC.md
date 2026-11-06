@@ -57,11 +57,11 @@ Environments: `dev` (local, `wrangler dev` with local D1/R2), `staging`, `produc
 2. **Access is by membership.** A user sees a building only through a `membership` on that building's organisation (or an ancestor organisation with an estates role, see 4). No membership → 404, not 403, so ids don't leak.
 3. **Diocese over parish.** A diocese organisation can be the parent of a parish organisation. Estates roles on the diocese can **read** the parish's records and **write their own** estates notes and programmes. They cannot edit parish records. Estates notes are never shown to parish users unless explicitly shared (`estatesNote.sharedWithParish`).
 4. **Parish users never see the estates shell** or other parishes.
-5. **Files.** R2 keys are `org/{orgId}/building/{buildingId}/{documentId}`. Files are only ever served through the Worker after a scope check, with short-lived signed URLs. No public bucket.
+5. **Files.** R2 keys are `org/{orgId}/building/{buildingId}/{documentId}.{ext}`. Files are only ever served by the Worker streaming them after a scope check (`/api/buildings/:id/documents/:docId/file`), with `no-store` and a sandboxing content security policy. No public bucket and no shareable links in v1.
 6. **Auth.** Email and password (decided 6 Nov 2026). Passwords hashed with PBKDF2-SHA256 (Web Crypto, 100,000 iterations, 16-byte random salt), minimum 10 characters, checked against a short list of common passwords. Session cookie (`HttpOnly`, `Secure`, `SameSite=Lax`) holding a random token stored hashed in D1; 30-day sliding sessions. After 10 failed attempts on an email in 15 minutes, logins for that email are refused for 15 minutes. Password reset by emailed single-use link (1 hour). Accounts are created by invitation only in v1; the invite link lets the person set their own password. All sessions are ended when a password changes.
 7. **Audit.** Every create/update/delete writes an `auditEvent` (who, what, before/after summary, when). Frequency changes on compliance items are logged explicitly (UI-HANDOFF §8).
 8. **AI data handling.** The PCC is the controller, the product the processor, the AI provider a sub-processor on API terms with no training on customer data. Named in the privacy notice and the pilot agreement. Contractor contact details are personal data under the same notice.
-9. **Uploads.** Max 50 MB per file; allowed types PDF, JPEG, PNG, HEIC, DOCX, XLSX. Content type checked server-side.
+9. **Uploads.** Max 50 MB per file; allowed types PDF, JPEG, PNG, HEIC, DOCX, XLSX. The file's first bytes are checked against its declared type server-side. Uploads send the raw file with an `X-Fabric-Upload: 1` header, which another site can't send without a CORS preflight the API never grants.
 10. **No real documents uploaded** until the pilot PCC has signed the data and ownership agreement.
 
 ---
@@ -115,6 +115,7 @@ All ids are text (ULID). All tables have `createdAt`, `updatedAt` (ISO 8601 text
 | address, postcode | text | |
 | hasLift | bool | seeds lift inspection |
 | hasWaterSystems | bool | seeds legionella assessment |
+| insuranceRenewsOn | date, null | anchors the insurance renewal item |
 | inspectorName, insurer, architect | text, null | building profile |
 | keyContacts | json | `[{name, role, phone, email}]` |
 | fittings | json | `[{id, kind: "emergency_light" \| ..., location}]` for phone self-checks |
@@ -127,6 +128,7 @@ id, orgId, buildingId, type (enum: `certificate`, `invoice`, `quote`, `insurance
 |---|---|---|
 | id, orgId, buildingId | | |
 | name | text | |
+| templateKey | text, null | which default checklist entry it came from (§6) |
 | frequencyMonths | int | 1, 6, 12, 36, 60 … |
 | anchor | enum `none` \| `apcm` \| `insurance_renewal`, default `none` | anchored items take their date from the anchor |
 | doneBy | text | "Churchwardens", "Gas Safe engineer" |
@@ -139,11 +141,13 @@ id, orgId, buildingId, type (enum: `certificate`, `invoice`, `quote`, `insurance
 ### complianceOccurrence
 id, complianceItemId, doneOn (date), doneByUserId (null), doneByText, documentId (null), checklist (json, null — per-fitting results), notes, status (`complete` \| `partial`).
 
-**Rules (computed server-side, one function shared by screens and emails):**
-- `lastDone` = latest complete occurrence's `doneOn`.
-- `nextDue` = `nextDueOverride` ?? (anchor date if anchored) ?? `lastDone + frequencyMonths` ?? creation date.
-- `status` = `overdue` (today > nextDue; n days), `due_soon` (within 90 days), `on_track`.
-- `missingEvidence` = latest occurrence complete, not a self-check, and no `documentId`.
+**Rules** — one implementation in `src/shared/compliance.ts`, used by the API, the screens and the reminder emails:
+- `lastDone` = latest *complete* occurrence's `doneOn`. A *partial* occurrence (a monthly light test with lights not all ticked) never advances the date.
+- `nextDue` = `nextDueOverride` ?? anchored date ?? `lastDone + frequencyMonths`. Recording a complete occurrence clears the override.
+- Anchored items (APCM, insurance renewal) work in windows: each anchor date covers the `frequency` before it, so a churchwardens' inspection in March counts for the April APCM. `nextDue` is the earliest anchor date whose window opens on or after `lastDone`; with no `lastDone` it is the anchor date itself. With no anchor date set, it falls back to `lastDone + frequency`.
+- `status` = `overdue` (today after nextDue), `due_soon` (0–90 days), `on_track`, or `not_recorded` when there is no record and no anchor (shown as "No record yet", never as overdue, and never reminded about). "Today" is in the organisation's time zone.
+- `missingEvidence` = latest complete occurrence is not a self-check and has no `documentId`.
+- Items are never deleted: removing one sets `active = false` so its history stays.
 
 ### qiReport
 id, orgId, buildingId, documentId, inspectedOn, inspectorName, pageCount, nextDueOn, status (`reading` \| `review` \| `current` \| `previous` \| `failed`), rawExtraction (json), modelVersion, promptVersion, readAt.
@@ -236,7 +240,7 @@ Cost cap: configurable monthly ceiling per organisation; when reached, extractio
 
 ## 8. Reminders
 
-Daily cron at 07:00 Europe/London. For each building, email recipients (`membership.receivesReminders`) about items 60, 30 and 7 days before `nextDue`, on the day it becomes overdue, then weekly while overdue. One email per building per day grouping all items. Recording an occurrence advances `nextDue` and stops reminders. Email wording matches on-screen wording.
+Cron triggers at 06:00 and 07:00 UTC; the job acts only when it is 07:00 in Europe/London, so it runs once a day in both GMT and BST. For each building, email recipients (parish-role members with `membership.receivesReminders`, set by the PCC admin in Settings) about items 60, 30 and 7 days before `nextDue`, on the first day overdue, then weekly while overdue. One email per building per day grouping all items, guaranteed by a unique (building, day) row in `reminderLog`. Recording an occurrence advances `nextDue` and stops reminders. Email wording matches on-screen wording (`statusLabel`).
 
 ---
 
@@ -247,7 +251,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 | # | Milestone | Includes | UI-HANDOFF steps |
 |---|---|---|---|
 | M1 | Foundations | Repo, Worker, D1, R2, Drizzle schema and migrations, tenancy repository layer + tests, password auth with invites and reset, roles, audit, tokens and shared components with `/components` page | 1, 2 |
-| M2 | Compliance calendar | Building profile, seeding, occurrences, document upload, status rules (tests first), month strip, daily reminders | 3 |
+| M2 | Compliance calendar | Building profile, seeding, occurrences, document upload, status rules (tests first), month strip, daily reminders. The calendar's export is the browser's print / save as PDF with a print stylesheet; server-rendered PDFs arrive with M5 | 3 |
 | M3 | Jobs, contractors, documents, dashboard | Job log, contractor book, documents list, draft logbook entries, church dashboard | 4, 5 |
 | M4 | Quinquennial | Upload, queued extraction, review screen, task table, permission flags, routine items into the calendar, extraction test suite | 6 |
 | M5 | Annual fabric report | Builder, preview, Word and PDF export saved to Documents | 7 |
@@ -258,6 +262,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 
 ## 10. Open points
 
+- Decided 6 Nov 2026 (M2): items with no record show "No record yet" rather than overdue; anchored items use the window rule in §5.
 - Decided 6 Nov 2026: Hono, React, Brevo, Browser Rendering, inspector role, items 15–16; login changed to passwords.
 - Which inspecting architects' reports form the extraction test suite.
 - Pilot PCCs to sign the data and ownership agreement before real documents are uploaded.

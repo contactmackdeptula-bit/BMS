@@ -13,6 +13,7 @@ import "./styles/components.css";
 import { ForgotPasswordPage, InvitePage, LoginPage, ResetPasswordPage } from "./pages/auth";
 import { BuildingProfilePage, ChurchLayout, ComingSoon, Home, SettingsPage } from "./pages/church";
 import { ComponentsPage } from "./pages/components";
+import { CompliancePage } from "./pages/compliance";
 import { EstatesComingSoon, EstatesLayout, EstatesOverview } from "./pages/estates";
 import { RequireSession } from "./session";
 
@@ -38,7 +39,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <ComingSoon section="dashboard" /> },
           { path: "building", element: <BuildingProfilePage /> },
-          { path: "compliance", element: <ComingSoon section="compliance" /> },
+          { path: "compliance", element: <CompliancePage /> },
           { path: "quinquennial", element: <ComingSoon section="quinquennial" /> },
           { path: "jobs", element: <ComingSoon section="jobs" /> },
           { path: "documents", element: <ComingSoon section="documents" /> },

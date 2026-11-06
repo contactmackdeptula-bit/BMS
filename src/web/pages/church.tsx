@@ -5,7 +5,7 @@ import { LISTING_LABELS, ROLE_LABELS, formatDate } from "../format";
 import { lastBuilding, useSession } from "../session";
 import { Button, Card, ErrorPanel, Notice, PageHeader, Skeleton } from "../ui/basics";
 import { DataTable } from "../ui/data";
-import { Checkbox, Input, Select } from "../ui/forms";
+import { Checkbox, DateInput, Input, Select } from "../ui/forms";
 import { CHURCH_NAV, Sidebar, type ChurchSection } from "../ui/Sidebar";
 
 // ---------- Landing: pick the building to open ----------
@@ -287,16 +287,132 @@ export function BuildingProfilePage() {
           <div className="form-grid">
             {text("inspectorName", "Inspecting architect or surveyor (quinquennial)", true)}
             {text("architect", "Architect for building projects", true)}
-            {text("insurer", "Insurer", true)}
+            {text("insurer", "Insurer")}
+            <DateInput
+              label="Insurance renews on"
+              value={form.insuranceRenewsOn ?? ""}
+              readOnly={readOnly}
+              onChange={(e) => set("insuranceRenewsOn", e.target.value || null)}
+              hint="Dates the insurance renewal reminder."
+            />
           </div>
+        </Card>
+        <Card
+          title="Emergency lights"
+          headingId="profile-lights"
+          caption="Listed here, they become the tick list for the monthly test."
+          className="span-2"
+        >
+          <LightsEditor
+            lights={form.fittings.filter((f) => f.kind === "emergency_light")}
+            readOnly={readOnly}
+            onChange={(lights) => set("fittings", [...form.fittings.filter((f) => f.kind !== "emergency_light"), ...lights])}
+          />
         </Card>
       </div>
     </form>
   );
 }
 
+function LightsEditor({
+  lights,
+  readOnly,
+  onChange,
+}: {
+  lights: Building["fittings"];
+  readOnly: boolean;
+  onChange: (lights: Building["fittings"]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const location = draft.trim();
+    if (!location) return;
+    onChange([...lights, { id: crypto.randomUUID(), kind: "emergency_light", location }]);
+    setDraft("");
+  };
+  return (
+    <div className="sheet-section">
+      {lights.length === 0 ? (
+        <p className="muted" style={{ margin: 0 }}>
+          No lights listed yet.
+        </p>
+      ) : (
+        <ul className="history">
+          {lights.map((l) => (
+            <li key={l.id} style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+              <span>{l.location}</span>
+              {!readOnly && (
+                <Button size="sm" variant="ghost" onClick={() => onChange(lights.filter((x) => x.id !== l.id))} aria-label={`Remove ${l.location}`}>
+                  Remove
+                </Button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {!readOnly && (
+        <div className="form-grid" style={{ alignItems: "end" }}>
+          <Input
+            label="Where is the light?"
+            value={draft}
+            placeholder="Nave, west door"
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+          />
+          <div>
+            <Button onClick={add}>Add light</Button>
+          </div>
+        </div>
+      )}
+      {!readOnly && lights.length > 0 && <p className="muted" style={{ margin: 0, fontSize: 13 }}>Remember to save changes.</p>}
+    </div>
+  );
+}
+
 // ---------- Settings: people and password ----------
-type Member = { userId: string; name: string; email: string; role: Role; buildingId: string | null };
+type Member = { userId: string; name: string; email: string; role: Role; buildingId: string | null; receivesReminders: boolean };
+
+function ApcmCard({ orgId }: { orgId: string }) {
+  const { me, reload } = useSession();
+  const current = me.organisations.find((o) => o.id === orgId)?.apcmDate ?? "";
+  const [date, setDate] = useState(current);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
+  const save = async (e: FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    try {
+      await api.patch(`/orgs/${orgId}`, { apcmDate: date || null });
+      await reload();
+      setSaved(true);
+    } catch (err) {
+      setError((err as ApiError).message);
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Card title="Annual meeting" headingId="settings-apcm" caption="The churchwardens' fabric inspection is due before this date each year.">
+      {error && <ErrorPanel message={error} />}
+      {saved && <Notice>Saved.</Notice>}
+      <form onSubmit={save} className="form-grid" style={{ alignItems: "end" }}>
+        <DateInput label="Next APCM" value={date} onChange={(e) => { setSaved(false); setDate(e.target.value); }} />
+        <div>
+          <Button type="submit" loading={busy}>
+            Save date
+          </Button>
+        </div>
+      </form>
+    </Card>
+  );
+}
 type Invite = { email: string; role: Role; expiresAt: string };
 
 export function SettingsPage() {
@@ -306,6 +422,7 @@ export function SettingsPage() {
   return (
     <div className="stack">
       <PageHeader title="Settings" subtitle={building.name} />
+      {myRole === "pcc_admin" && <ApcmCard orgId={building.orgId} />}
       {myRole === "pcc_admin" && <PeopleCard orgId={building.orgId} buildingId={building.id} />}
       <PasswordCard />
     </div>
@@ -347,14 +464,41 @@ function PeopleCard({ orgId, buildingId }: { orgId: string; buildingId: string }
     }
   };
 
+  // Ticks change at once; if saving fails they go back and the error shows.
+  const setReceives = (userId: string, on: boolean) =>
+    setData((d) => d && { ...d, members: d.members.map((x) => (x.userId === userId ? { ...x, receivesReminders: on } : x)) });
+  const toggleReminders = async (m: Member, on: boolean) => {
+    setError(null);
+    setReceives(m.userId, on);
+    try {
+      await api.patch(`/orgs/${orgId}/members/${m.userId}`, { receivesReminders: on });
+    } catch (err) {
+      setReceives(m.userId, !on);
+      setError((err as ApiError).message);
+    }
+  };
+
   const rows = [
-    ...(data?.members ?? []).map((m) => ({ key: m.userId + m.role, name: m.name, email: m.email, role: ROLE_LABELS[m.role] ?? m.role, status: "Active" })),
+    ...(data?.members ?? []).map((m) => ({
+      key: m.userId + m.role,
+      name: m.name,
+      email: m.email,
+      role: ROLE_LABELS[m.role] ?? m.role,
+      status: "Active",
+      reminders:
+        m.role === "inspector" ? (
+          <span className="muted">Not offered</span>
+        ) : (
+          <Checkbox label="Reminder emails" checked={m.receivesReminders} onChange={(e) => toggleReminders(m, e.target.checked)} />
+        ),
+    })),
     ...(data?.invites ?? []).map((i) => ({
       key: "invite-" + i.email + i.role,
       name: "",
       email: i.email,
       role: ROLE_LABELS[i.role] ?? i.role,
       status: `Invited, link valid until ${formatDate(i.expiresAt)}`,
+      reminders: null,
     })),
   ];
 
@@ -386,6 +530,7 @@ function PeopleCard({ orgId, buildingId }: { orgId: string; buildingId: string }
             { key: "email", label: "Email" },
             { key: "role", label: "Role", nowrap: true },
             { key: "status", label: "Status" },
+            { key: "reminders", label: "Reminders" },
           ]}
         />
       ) : (
