@@ -17,6 +17,8 @@
       "migrations_dir": "migrations"
     }
   ],
+  // 06:00 and 07:00 UTC; the job only acts at 07:00 London time (GMT or BST).
+  "triggers": { "crons": ["0 6,7 * * *"] },
   "r2_buckets": [{ "binding": "FILES", "bucket_name": "fabric-files" }],
   "vars": {
     "PRODUCT_NAME": "Fabric",

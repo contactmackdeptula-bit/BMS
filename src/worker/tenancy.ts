@@ -9,6 +9,7 @@ import { and, eq, inArray, sql } from "drizzle-orm";
 import type { DrizzleD1Database } from "drizzle-orm/d1";
 import { building, membership, organisation, type Role } from "./db/schema";
 import { forbidden, notFound } from "./lib/http";
+import type { Env } from "./env";
 
 export type Action =
   | "building.read"
@@ -91,12 +92,17 @@ export type BuildingRow = typeof building.$inferSelect;
 export class BuildingScope {
   constructor(
     readonly db: DrizzleD1Database,
+    readonly env: Env,
     readonly userId: string,
     readonly building: BuildingRow,
     readonly roles: Role[],
   ) {}
   get buildingId() {
     return this.building.id;
+  }
+  /** The same access, with a refreshed building row (after an update). */
+  withBuilding(b: BuildingRow) {
+    return new BuildingScope(this.db, this.env, this.userId, b, this.roles);
   }
   get orgId() {
     return this.building.orgId;
@@ -116,6 +122,7 @@ export class BuildingScope {
 
 export async function buildingScope(
   db: DrizzleD1Database,
+  env: Env,
   userId: string,
   buildingId: string,
 ): Promise<BuildingScope> {
@@ -124,7 +131,7 @@ export async function buildingScope(
   const [ms, ancestors] = await Promise.all([membershipsOf(db, userId), ancestorIds(db, b.orgId)]);
   const roles = rolesForBuilding(ms, b, ancestors);
   if (roles.length === 0) throw notFound();
-  return new BuildingScope(db, userId, b, roles);
+  return new BuildingScope(db, env, userId, b, roles);
 }
 
 export type AccessibleBuilding = Pick<BuildingRow, "id" | "orgId" | "name" | "kind"> & {

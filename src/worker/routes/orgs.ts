@@ -3,7 +3,7 @@ import type { AppEnv } from "../app-env";
 import { ROLES, type Role } from "../db/schema";
 import { sendEmail } from "../lib/email";
 import { badRequest, looksLikeEmail, normaliseEmail, readJson, str, unauthorised } from "../lib/http";
-import { buildingFields, createBuilding, createInvite, listMembers, listPendingInvites } from "../repo/org";
+import { buildingFields, createBuilding, createInvite, listMembers, listPendingInvites, setReminderRecipient, updateOrgSettings } from "../repo/org";
 import { orgScope } from "../tenancy";
 
 export const orgRoutes = new Hono<AppEnv>();
@@ -45,4 +45,18 @@ orgRoutes.post("/:orgId/buildings", async (c) => {
   if (!input.name) throw badRequest("The building needs a name.");
   const id = await createBuilding(scope, { ...input, name: input.name });
   return c.json({ id }, 201);
+});
+
+orgRoutes.patch("/:orgId", async (c) => {
+  const scope = await orgScope(c.get("db"), c.get("user")!.id, c.req.param("orgId"), "org.manageUsers");
+  const body = await readJson(c.req.raw);
+  await updateOrgSettings(scope, "apcmDate" in body ? { apcmDate: str(body.apcmDate) || null } : {});
+  return c.json({ ok: true });
+});
+
+orgRoutes.patch("/:orgId/members/:userId", async (c) => {
+  const scope = await orgScope(c.get("db"), c.get("user")!.id, c.req.param("orgId"), "org.manageUsers");
+  const body = await readJson(c.req.raw);
+  await setReminderRecipient(scope, c.req.param("userId"), Boolean(body.receivesReminders));
+  return c.json({ ok: true });
 });

@@ -1,10 +1,10 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { authToken, building, membership, user, type Role } from "../db/schema";
+import { authToken, building, membership, organisation, user, type Role } from "../db/schema";
 import { audit } from "../lib/audit";
 import { randomToken, sha256 } from "../lib/crypto";
 import { badRequest } from "../lib/http";
 import { ulid } from "../lib/ids";
-import { addDays } from "../lib/time";
+import { addDays, nowIso } from "../lib/time";
 import { INVITABLE_ROLES, type OrgScope } from "../tenancy";
 import { buildingFields, type BuildingInput } from "./building";
 
@@ -78,3 +78,26 @@ export async function createBuilding(scope: OrgScope, input: BuildingInput & { n
 }
 
 export { buildingFields };
+
+export async function updateOrgSettings(scope: OrgScope, input: { apcmDate?: string | null }) {
+  if ("apcmDate" in input) {
+    const v = input.apcmDate;
+    if (v && !/^\d{4}-\d{2}-\d{2}$/.test(v)) throw badRequest("Use a valid APCM date.");
+    await scope.db.update(organisation).set({ apcmDate: v || null, updatedAt: nowIso() }).where(eq(organisation.id, scope.org.id));
+    await audit(scope.db, { orgId: scope.org.id, userId: scope.userId, entity: "organisation", entityId: scope.org.id, action: "updated", summary: { apcmDate: v || null } });
+  }
+}
+
+export async function setReminderRecipient(scope: OrgScope, userId: string, receives: boolean) {
+  const rows = await scope.db
+    .select({ id: membership.id })
+    .from(membership)
+    .where(and(eq(membership.orgId, scope.org.id), eq(membership.userId, userId)))
+    .all();
+  if (rows.length === 0) throw badRequest("That person isn't in this organisation.");
+  await scope.db
+    .update(membership)
+    .set({ receivesReminders: receives, updatedAt: nowIso() })
+    .where(and(eq(membership.orgId, scope.org.id), eq(membership.userId, userId)));
+  await audit(scope.db, { orgId: scope.org.id, userId: scope.userId, entity: "membership", entityId: userId, action: "reminders_changed", summary: { receives } });
+}

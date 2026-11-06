@@ -59,7 +59,7 @@ describe("login", () => {
 
   it("refuses non-JSON and cross-site writes", async () => {
     const { env } = await import("cloudflare:test");
-    const app = (await import("../src/worker/index")).default;
+    const { app } = await import("../src/worker/index");
     const form = await app.request("http://localhost/api/auth/login", { method: "POST", body: "email=a" }, env);
     expect(form.status).toBe(415);
     const cross = await app.request(

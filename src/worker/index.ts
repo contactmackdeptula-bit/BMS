@@ -6,6 +6,9 @@ import { readSession } from "./auth/session";
 import { authRoutes } from "./routes/auth";
 import { buildingRoutes } from "./routes/buildings";
 import { orgRoutes } from "./routes/orgs";
+import { complianceRoutes } from "./routes/compliance";
+import { scheduledReminders } from "./reminders";
+import type { Env } from "./env";
 
 export const app = new Hono<AppEnv>().basePath("/api");
 
@@ -14,7 +17,10 @@ app.use("*", async (c, next) => {
   // plain HTML form on another site cannot send) and, when the browser says where
   // they came from, come from this site.
   if (!["GET", "HEAD", "OPTIONS"].includes(c.req.method)) {
-    if (!c.req.header("content-type")?.startsWith("application/json")) {
+    // File uploads carry a custom header instead, which forces a CORS preflight
+    // that this API never answers, so other sites can't send them either.
+    const isUpload = c.req.header("x-fabric-upload") === "1";
+    if (!isUpload && !c.req.header("content-type")?.startsWith("application/json")) {
       return c.json({ error: "Expected a JSON body." }, 415);
     }
     const origin = c.req.header("origin");
@@ -34,6 +40,7 @@ app.use("*", async (c, next) => {
 
 app.route("/auth", authRoutes);
 app.route("/buildings", buildingRoutes);
+app.route("/buildings", complianceRoutes);
 app.route("/orgs", orgRoutes);
 
 app.get("/health", (c) => c.json({ ok: true }));
@@ -44,4 +51,9 @@ app.onError((err, c) => {
   return c.json({ error: "Something went wrong. Please try again." }, 500);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(scheduledReminders(env));
+  },
+} satisfies ExportedHandler<Env>;

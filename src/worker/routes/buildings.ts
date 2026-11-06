@@ -16,7 +16,7 @@ buildingRoutes.get("/", async (c) => {
 });
 
 buildingRoutes.get("/:buildingId", async (c) => {
-  const scope = await buildingScope(c.get("db"), c.get("user")!.id, c.req.param("buildingId"));
+  const scope = await buildingScope(c.get("db"), c.env, c.get("user")!.id, c.req.param("buildingId"));
   return c.json({
     building: getProfile(scope),
     access: { roles: scope.roles, canEdit: scope.can("building.edit"), viaEstates: scope.viaEstates },
@@ -24,7 +24,7 @@ buildingRoutes.get("/:buildingId", async (c) => {
 });
 
 buildingRoutes.patch("/:buildingId", async (c) => {
-  const scope = await buildingScope(c.get("db"), c.get("user")!.id, c.req.param("buildingId"));
+  const scope = await buildingScope(c.get("db"), c.env, c.get("user")!.id, c.req.param("buildingId"));
   const updated = await updateProfile(scope, buildingFields(await readJson(c.req.raw)));
   return c.json({ building: updated });
 });

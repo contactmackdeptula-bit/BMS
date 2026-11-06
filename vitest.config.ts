@@ -10,6 +10,8 @@ export default defineWorkersConfig(async () => {
       poolOptions: {
         workers: {
           singleWorker: true,
+          // Tests share one database and create their own uniquely named records.
+          isolatedStorage: false,
           wrangler: { configPath: "./wrangler.jsonc" },
           miniflare: {
             bindings: { TEST_MIGRATIONS: migrations },

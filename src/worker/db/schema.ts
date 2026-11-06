@@ -120,6 +120,7 @@ export const building = sqliteTable(
     hasWaterSystems: bool("has_water_systems").notNull().default(false),
     inspectorName: text("inspector_name"),
     insurer: text("insurer"),
+    insuranceRenewsOn: text("insurance_renews_on"),
     architect: text("architect"),
     keyContacts: json<KeyContact[]>("key_contacts").notNull().default([]),
     fittings: json<Fitting[]>("fittings").notNull().default([]),
@@ -189,6 +190,8 @@ export const complianceItem = sqliteTable(
     orgId: text("org_id").notNull(),
     buildingId: text("building_id").notNull().references(() => building.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
+    /** Which default checklist entry this came from (SPEC.md §6), or null for added items. */
+    templateKey: text("template_key"),
     frequencyMonths: integer("frequency_months").notNull(),
     anchor: text("anchor", { enum: ["none", "apcm", "insurance_renewal"] }).notNull().default("none"),
     doneBy: text("done_by"),

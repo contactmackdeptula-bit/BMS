@@ -4,10 +4,12 @@ import { audit } from "../lib/audit";
 import { badRequest, str } from "../lib/http";
 import { nowIso } from "../lib/time";
 import type { BuildingScope } from "../tenancy";
+import { syncOptionalItems } from "./compliance";
 
 const KINDS = ["church", "hall", "house", "other"] as const;
 const LISTINGS = ["grade_i", "grade_ii_star", "grade_ii", "unlisted", "locally_listed"] as const;
 const TEXT_FIELDS = ["name", "diocese", "address", "postcode", "inspectorName", "insurer", "architect"] as const;
+const isDate = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v);
 
 export type BuildingInput = Partial<{
   name: string;
@@ -18,6 +20,7 @@ export type BuildingInput = Partial<{
   postcode: string | null;
   inspectorName: string | null;
   insurer: string | null;
+  insuranceRenewsOn: string | null;
   architect: string | null;
   hasLift: boolean;
   hasWaterSystems: boolean;
@@ -46,6 +49,10 @@ export function buildingFields(body: Record<string, unknown>): BuildingInput {
     if (body.listing !== null && !LISTINGS.includes(body.listing as never)) throw badRequest("Unknown listing.");
     out.listing = body.listing as BuildingInput["listing"];
   }
+  if ("insuranceRenewsOn" in body) {
+    if (body.insuranceRenewsOn && !isDate(body.insuranceRenewsOn)) throw badRequest("Use a valid renewal date.");
+    out.insuranceRenewsOn = (body.insuranceRenewsOn as string) || null;
+  }
   for (const f of ["hasLift", "hasWaterSystems"] as const) {
     if (f in body) out[f] = Boolean(body[f]);
   }
@@ -60,11 +67,14 @@ export function buildingFields(body: Record<string, unknown>): BuildingInput {
   }
   if ("fittings" in body) {
     if (!Array.isArray(body.fittings)) throw badRequest("fittings must be a list.");
-    out.fittings = body.fittings.slice(0, 200).map((f: Record<string, unknown>) => ({
-      id: str(f?.id) || crypto.randomUUID(),
-      kind: str(f?.kind),
-      location: str(f?.location),
-    }));
+    out.fittings = body.fittings
+      .slice(0, 200)
+      .map((f: Record<string, unknown>) => ({
+        id: str(f?.id) || crypto.randomUUID(),
+        kind: str(f?.kind) || "emergency_light",
+        location: str(f?.location).slice(0, 120),
+      }))
+      .filter((f) => f.location);
   }
   return out;
 }
@@ -89,5 +99,7 @@ export async function updateProfile(scope: BuildingScope, input: BuildingInput) 
     action: "updated",
     summary: { fields: changed },
   });
-  return (await scope.db.select().from(building).where(eq(building.id, scope.buildingId)).get())!;
+  const updated = (await scope.db.select().from(building).where(eq(building.id, scope.buildingId)).get())!;
+  if ("hasLift" in input || "hasWaterSystems" in input) await syncOptionalItems(scope.withBuilding(updated));
+  return updated;
 }

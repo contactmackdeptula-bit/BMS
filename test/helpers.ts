@@ -1,6 +1,6 @@
 import { env } from "cloudflare:test";
 import { drizzle } from "drizzle-orm/d1";
-import app from "../src/worker/index";
+import { app } from "../src/worker/index";
 import { building, membership, organisation, user, type Role } from "../src/worker/db/schema";
 import { hashPassword } from "../src/worker/lib/crypto";
 import { ulid } from "../src/worker/lib/ids";
@@ -11,13 +11,15 @@ export const PASSWORD = "correct horse battery";
 /** A tiny browser: keeps the session cookie between requests. */
 export class Client {
   cookie = "";
-  async req(method: string, path: string, body?: unknown) {
+  async req(method: string, path: string, body?: unknown, extraHeaders: Record<string, string> = {}) {
     const headers: Record<string, string> = {};
     if (this.cookie) headers.cookie = this.cookie;
-    if (method !== "GET") headers["content-type"] = "application/json";
+    const raw = body instanceof Uint8Array || body instanceof ArrayBuffer;
+    if (method !== "GET" && !raw) headers["content-type"] = "application/json";
+    Object.assign(headers, extraHeaders);
     const res = await app.request(
       `http://localhost${path}`,
-      { method, headers, body: method === "GET" ? undefined : JSON.stringify(body ?? {}) },
+      { method, headers, body: method === "GET" ? undefined : raw ? (body as BodyInit) : JSON.stringify(body ?? {}) },
       env,
     );
     const set = res.headers.get("set-cookie");
@@ -25,12 +27,16 @@ export class Client {
       const [pair] = set.split(";");
       this.cookie = pair!.endsWith("=") ? "" : pair!;
     }
-    const json = (await res.json().catch(() => null)) as any;
-    return { status: res.status, json, headers: res.headers };
+    const isJson = res.headers.get("content-type")?.includes("application/json");
+    const json = isJson ? ((await res.json().catch(() => null)) as any) : null;
+    const bytes = isJson ? null : new Uint8Array(await res.arrayBuffer());
+    return { status: res.status, json, headers: res.headers, bytes };
   }
   get = (p: string) => this.req("GET", p);
   post = (p: string, b?: unknown) => this.req("POST", p, b);
   patch = (p: string, b?: unknown) => this.req("PATCH", p, b);
+  upload = (p: string, bytes: Uint8Array, headers: Record<string, string>) =>
+    this.req("POST", p, bytes, { "x-fabric-upload": "1", ...headers });
 }
 
 export async function makeOrg(name: string, type: "parish" | "diocese" | "pastoral_area" = "parish", parentId: string | null = null) {
