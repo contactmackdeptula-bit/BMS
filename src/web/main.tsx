@@ -19,6 +19,7 @@ import { DashboardPage } from "./pages/dashboard";
 import { DocumentsPage } from "./pages/documents";
 import { JobsPage } from "./pages/jobs";
 import { QuinquennialPage } from "./pages/quinquennial";
+import { ReportsPage } from "./pages/reports";
 import { EstatesComingSoon, EstatesLayout, EstatesOverview } from "./pages/estates";
 import { RequireSession } from "./session";
 
@@ -49,7 +50,7 @@ const router = createBrowserRouter([
           { path: "jobs", element: <JobsPage /> },
           { path: "documents", element: <DocumentsPage /> },
           { path: "contractors", element: <ContractorsPage /> },
-          { path: "reports", element: <ComingSoon section="reports" /> },
+          { path: "reports", element: <ReportsPage /> },
           { path: "settings", element: <SettingsPage /> },
         ],
       },

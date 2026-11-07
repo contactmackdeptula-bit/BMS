@@ -42,7 +42,7 @@ Contractor accounts or logins, quoting, payments, collective purchasing, Mainten
 | Scheduled jobs | Workers Cron Triggers (daily reminder run) |
 | Background work | Cloudflare Queues for QI extraction and document reading |
 | Email | Transactional email through a provider adapter (Brevo first, as it is already in use) |
-| Exports | `.docx` generated server-side (`docx` package); PDF rendered from the same HTML with Cloudflare Browser Rendering |
+| Exports | `.docx` generated server-side (`docx` package); PDF drawn server-side with `pdf-lib` (standard Times font, A4). Decided 7 Nov 2026 instead of Cloudflare Browser Rendering: no paid service, works locally and offline |
 | AI | Claude API, called only from the Worker on the product's own account. Model and prompt versions are config. |
 | Tests | Vitest (unit + Workers pool for D1), Playwright for end-to-end |
 | Fonts | Inter and Source Serif 4, self-hosted woff2 |
@@ -254,7 +254,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 | M2 | Compliance calendar | Building profile, seeding, occurrences, document upload, status rules (tests first), month strip, daily reminders. The calendar's export is the browser's print / save as PDF with a print stylesheet; server-rendered PDFs arrive with M5 | 3 |
 | M3 | Jobs, contractors, documents, dashboard | Job log (planned and done, paperwork, awaiting-invoice flag, yearly spend; a job can also record a compliance check), organisation-wide contractor book, documents list with expiry and where each is used, draft logbook entries approved by churchwardens, church dashboard with setup steps for a new building | 4, 5 |
 | M4 | Quinquennial | **Built 6 Nov 2026 with manual entry:** upload, review step (report in `review`, items typed in), publish (newer inspection becomes `current`, older filed as `previous`), task table grouped by band/location/trade, permission flags, waiting-on links, done only via a logged job, routine (M) items onto the calendar, the inspection recorded on the calendar with the report as evidence. **Still to do:** queued AI extraction into the same review step (Claude Haiku 5.5 first, Sonnet 5.5 for low-confidence reports), page images beside flagged items, the extraction test suite of real reports, and "Get quotes" emails to contractors | 6 |
-| M5 | Annual fabric report | Builder, preview, Word and PDF export saved to Documents | 7 |
+| M5 | Annual fabric report | **Built 7 Nov 2026:** builder with live preview from one shared text function, draft saved per year, suggested matters confirmed or left out (never exported unconfirmed), terrier confirmation, Word and PDF exports (footer, signature block, logbook appendix) each saved to Documents | 7 |
 | M6 | Phone and offline | Responsive phone layout, This week, checklists, camera logging, offline queue | 8 |
 | M7 | Estates console and document reading | Organisation tree, aggregates, survey cycle, programmes, estates notes and sharing; document reading; AI usage meter | 9, 10 |
 

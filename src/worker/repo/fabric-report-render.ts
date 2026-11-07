@@ -175,15 +175,17 @@ export async function renderPdf(text: FabricReportText): Promise<Uint8Array> {
     para(`${s.n}. ${s.heading}`, { font: bold, size: 14, after: 2 });
     for (const p of s.paragraphs) para(p, { after: 8 });
   }
-  y -= 24;
+  // The two signature lines stay together.
+  y -= 18;
+  ensure(100);
   for (const label of ["Churchwarden", "Churchwarden"]) {
-    ensure(48);
     para("Signed .....................................................   Date ....................", { after: 0 });
     para(label, { font: italic, color: muted, after: 14 });
   }
 
-  // Appendix on a new page
-  newPage();
+  // Appendix on a new page, unless the signatures already spilled onto a page with plenty of room.
+  if (pdf.getPageCount() === 1 || y < H * 0.55) newPage();
+  else y -= 24;
   para("Appendix: logbook entries for the year", { font: bold, size: 14, after: 8 });
   if (text.appendix.length === 0) para("No logbook entries were made during the year.");
   else {

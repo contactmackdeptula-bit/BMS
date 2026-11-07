@@ -107,13 +107,17 @@ export function buildFabricReport(facts: FabricFacts, input: FabricInput): Fabri
   let s3: string;
   if (w.count === 0) s3 = "No works were recorded during the year.";
   else {
+    // Job titles read as instructions ("Replace cracked slates"), so they're listed, not woven into the sentence.
     const items = w.largest.map((j) => {
       const bits = [monthOf(j.doneOn), j.contractor, j.costPence != null ? formatPounds(j.costPence) : null].filter(Boolean);
-      return `${lower(j.title)}${bits.length ? ` (${bits.join(", ")})` : ""}`;
+      return `${j.title.replace(/\.$/, "")}${bits.length ? ` (${bits.join(", ")})` : ""}`;
     });
     const rest = w.count - w.largest.length;
-    const list = items.length > 1 ? `${items.slice(0, -1).join(", ")}${rest > 0 ? ", " : " and "}${items[items.length - 1]}` : items[0];
-    s3 = `${countWord(w.count)} ${plural(w.count, "item")} of work ${w.count === 1 ? "was" : "were"} completed at a total cost of ${formatPounds(w.totalPence)}, including ${list}${rest > 0 ? `, and ${rest} smaller ${plural(rest, "item")}` : ""}.`;
+    const total = `${countWord(w.count)} ${plural(w.count, "item")} of work ${w.count === 1 ? "was" : "were"} completed at a total cost of ${formatPounds(w.totalPence)}.`;
+    s3 =
+      w.count === 1
+        ? `${total} ${items[0]}.`
+        : `${total} ${rest > 0 ? "The largest were" : "They were"}: ${items.join("; ")}${rest > 0 ? `; and ${rest} smaller ${plural(rest, "item")}` : ""}.`;
   }
   sections.push({ n: 3, heading: "Works carried out during the year", paragraphs: [s3], state: "ok", fact: w.count ? `${w.count} ${plural(w.count, "job")}, ${formatPounds(w.totalPence)}` : "None recorded" });
 
@@ -171,7 +175,7 @@ export function buildFabricReport(facts: FabricFacts, input: FabricInput): Fabri
 
   // 7 Terrier, inventory and logbook
   const n = facts.logbook.length;
-  const logSentence = `${countWord(n)} ${plural(n, "entry was", "entries were")} made in the logbook during the year${n ? "; they are listed in the appendix" : ""}.`;
+  const logSentence = `${countWord(n)} ${plural(n, "entry was", "entries were")} made in the logbook during the year${n === 1 ? "; it is listed in the appendix" : n ? "; they are listed in the appendix" : ""}.`;
   sections.push({
     n: 7,
     heading: "Terrier, inventory and logbook",

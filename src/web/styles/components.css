@@ -1029,3 +1029,128 @@ textarea.control {
 .band-tile .muted {
   font-size: var(--text-base-size);
 }
+
+/* ---------- Fabric report: checklist and paper preview ---------- */
+.report-checklist {
+  display: flex;
+  flex-direction: column;
+}
+.report-check {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  font-size: var(--text-md-size);
+}
+.report-check:first-child {
+  border-top: 0;
+}
+.report-check .grow {
+  flex: 1;
+}
+.report-check .muted,
+.report-check .warn-text {
+  font-size: var(--text-base-size);
+  text-align: right;
+}
+.badge {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex: none;
+}
+.matter {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+.matter.suggestion {
+  border-style: dashed;
+  background: var(--ground);
+  flex-direction: column;
+}
+.matter p {
+  margin: 0;
+  font-size: var(--text-md-size);
+}
+.paper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 36px 40px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  font-family: var(--font-report);
+  line-height: 1.55;
+  position: sticky;
+  top: 16px;
+}
+.paper-label {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm-size);
+  font-weight: 600;
+  color: var(--ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.paper-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.paper-title {
+  font-size: 22px;
+  font-weight: 600;
+}
+.paper-sub {
+  font-size: 15px;
+  color: var(--ink-muted);
+}
+.paper-section,
+.paper-appendix {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.paper-heading {
+  font-size: 16px;
+  font-weight: 600;
+}
+.paper p {
+  margin: 0;
+  font-size: 15px;
+}
+.paper-todo {
+  background: var(--warn-bg);
+  border-radius: 4px;
+  padding: 2px 4px;
+}
+.paper-appendix ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+.paper-foot {
+  font-family: var(--font-ui);
+  font-size: var(--text-sm-size);
+  color: var(--ink-muted);
+  padding-top: 8px;
+  border-top: 1px solid var(--rule);
+}
+@media (max-width: 1199px) {
+  .paper {
+    position: static;
+    padding: 24px 20px;
+  }
+}

@@ -38,7 +38,7 @@ describe("report wording", () => {
       "The fabric of the church was inspected on 20 March 2027 by R. Hughes and M. Patel, churchwardens, accompanied by the fabric committee chair, in accordance with Canon F 13 and the Care of Churches and Ecclesiastical Jurisdiction Measure 1991.",
     );
     expect(s[3]!.paragraphs[0]).toBe(
-      "Eleven items of work were completed at a total cost of £6,420, including replace cracked slates to the north aisle (September, Solent Heritage Roofing, £1,150), boiler service (October, Portsdown Heating, £190), and 9 smaller items.",
+      "Eleven items of work were completed at a total cost of £6,420. The largest were: Replace cracked slates to the north aisle (September, Solent Heritage Roofing, £1,150); Boiler service (October, Portsdown Heating, £190); and 9 smaller items.",
     );
     expect(s[4]!.paragraphs[0]).toContain("Of the 44 recommendations in the report of 14 May 2024, 30 have been completed. One urgent item remains open: repoint the south aisle parapet (item 3.2, quote received; List B application needed).");
     expect(s[5]!.paragraphs[0]).toBe(
@@ -46,7 +46,7 @@ describe("report wording", () => {
     );
     expect(s[6]!.paragraphs).toEqual(["The PCC is asked to note X."]);
     expect(s[6]!.state).toBe("ok");
-    expect(s[7]!.paragraphs[0]).toBe("The terrier and inventory have been checked and are accurate. One entry was made in the logbook during the year; they are listed in the appendix.");
+    expect(s[7]!.paragraphs[0]).toBe("The terrier and inventory have been checked and are accurate. One entry was made in the logbook during the year; it is listed in the appendix.");
     expect(r.presented).toBe("Presented to the Annual Parochial Church Meeting, 26 April 2027");
   });
 
