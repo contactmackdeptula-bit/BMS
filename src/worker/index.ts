@@ -40,6 +40,8 @@ app.use("*", async (c, next) => {
   c.header("Cache-Control", "no-store");
   c.header("X-Content-Type-Options", "nosniff");
   c.header("Referrer-Policy", "same-origin");
+  c.header("X-Frame-Options", "DENY");
+  c.header("Strict-Transport-Security", "max-age=31536000");
 });
 
 app.route("/auth", authRoutes);

@@ -36,7 +36,8 @@ orgRoutes.post("/:orgId/invitations", async (c) => {
     subject: `${inviter} has invited you to ${c.env.PRODUCT_NAME} for ${scope.org.name}`,
     text: `${inviter} has invited you to help look after the buildings of ${scope.org.name} using ${c.env.PRODUCT_NAME}.\n\nOpen this link within 7 days to set your password and sign in:\n${c.env.APP_URL}/invite?token=${token}\n\nIf you weren't expecting this, you can ignore it.`,
   });
-  return c.json({ ok: true }, 201);
+  // Until an email service is connected, the inviting admin gets the link to send themselves.
+  return c.json({ ok: true, ...(c.env.EMAIL_MODE === "brevo" ? {} : { inviteLink: `${c.env.APP_URL}/invite?token=${token}` }) }, 201);
 });
 
 orgRoutes.post("/:orgId/buildings", async (c) => {

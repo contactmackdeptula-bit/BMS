@@ -13,7 +13,7 @@
     {
       "binding": "DB",
       "database_name": "fabric",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3ec68ee5-308e-41bc-ac5a-d9a052c26d52", // EU jurisdiction
       "migrations_dir": "migrations"
     }
   ],
@@ -23,7 +23,7 @@
   "vars": {
     "PRODUCT_NAME": "Fabric",
     "PRODUCT_TAGLINE": "Church buildings, in order",
-    "APP_URL": "http://localhost:5173",
+    "APP_URL": "https://fabric.mds-chms.workers.dev", // local dev overrides this in .dev.vars
     "EMAIL_MODE": "log"
   }
 }

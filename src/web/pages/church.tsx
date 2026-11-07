@@ -441,6 +441,7 @@ export function PeopleCard({ orgId, buildingId, roles = INVITE_ROLES, caption = 
   const [role, setRole] = useState<Role>(roles[0]!);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
+  const [link, setLink] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -456,8 +457,9 @@ export function PeopleCard({ orgId, buildingId, roles = INVITE_ROLES, caption = 
     setBusy(true);
     setError(null);
     try {
-      await api.post(`/orgs/${orgId}/invitations`, { email, role, buildingId: role === "inspector" ? buildingId : undefined });
+      const r = await api.post<{ inviteLink?: string }>(`/orgs/${orgId}/invitations`, { email, role, buildingId: role === "inspector" ? buildingId : undefined });
       setSent(email);
+      setLink(r.inviteLink ?? null);
       setEmail("");
       await load();
     } catch (err) {
@@ -508,7 +510,20 @@ export function PeopleCard({ orgId, buildingId, roles = INVITE_ROLES, caption = 
   return (
     <Card title="People" headingId="settings-people" caption={caption}>
       {error && <ErrorPanel message={error} />}
-      {sent && <Notice>Invitation sent to {sent}.</Notice>}
+      {sent && !link && <Notice>Invitation sent to {sent}.</Notice>}
+      {sent && link && (
+        <div className="panel tone-info" role="status" style={{ display: "block" }}>
+          <p style={{ margin: "0 0 8px" }}>
+            Email isn't connected yet, so send this link to {sent} yourself. It works once, for 7 days.
+          </p>
+          <code style={{ display: "block", wordBreak: "break-all", fontSize: 13, background: "var(--surface)", padding: 8, borderRadius: 6 }}>{link}</code>
+          <div style={{ marginTop: 8 }}>
+            <Button size="sm" onClick={() => void navigator.clipboard?.writeText(link)}>
+              Copy link
+            </Button>
+          </div>
+        </div>
+      )}
       <form onSubmit={invite} className="form-grid" style={{ alignItems: "end" }}>
         <Input label="Email address" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Select

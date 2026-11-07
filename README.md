@@ -7,6 +7,8 @@ Records and planning for the people who look after church buildings. The product
 
 ## Run it locally
 
+Copy `.dev.vars.example` to `.dev.vars` first (local settings: app address and email mode).
+
 ```bash
 npm install
 npm run db:migrate:local
@@ -39,3 +41,11 @@ npm test
 | `src/web/` | React front end; `ui/` holds the shared components |
 | `test/` | Vitest in the Workers runtime against a real local D1 |
 | `migrations/` | D1 migrations |
+
+## Production
+
+- Cloudflare Worker `fabric`, served at https://fabric.mds-chms.workers.dev
+- D1 database `fabric` (EU jurisdiction), R2 bucket `fabric-files`
+- Deploy: `npm run build && npx wrangler d1 migrations apply fabric --remote && npx wrangler deploy`
+- First admin for a parish: `node scripts/bootstrap.mjs --remote --parish "..." --email ...` prints a one-time invite link
+- Until `EMAIL_MODE` is `brevo` (with `EMAIL_API_KEY` and `EMAIL_FROM` set as Worker secrets), no emails are sent: a PCC admin sees each invite link on screen to pass on, and password reset emails can't be delivered
