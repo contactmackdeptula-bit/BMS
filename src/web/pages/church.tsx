@@ -434,11 +434,11 @@ export function SettingsPage() {
 
 const INVITE_ROLES: Role[] = ["churchwarden", "treasurer", "member", "pcc_admin", "inspector"];
 
-function PeopleCard({ orgId, buildingId }: { orgId: string; buildingId: string }) {
+export function PeopleCard({ orgId, buildingId, roles = INVITE_ROLES, caption = "Everyone here can see this church's records. Only PCC admins can invite." }: { orgId: string; buildingId?: string; roles?: Role[]; caption?: string }) {
   const [data, setData] = useState<{ members: Member[]; invites: Invite[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<Role>("churchwarden");
+  const [role, setRole] = useState<Role>(roles[0]!);
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState<string | null>(null);
 
@@ -506,7 +506,7 @@ function PeopleCard({ orgId, buildingId }: { orgId: string; buildingId: string }
   ];
 
   return (
-    <Card title="People" headingId="settings-people" caption="Everyone here can see this church's records. Only PCC admins can invite.">
+    <Card title="People" headingId="settings-people" caption={caption}>
       {error && <ErrorPanel message={error} />}
       {sent && <Notice>Invitation sent to {sent}.</Notice>}
       <form onSubmit={invite} className="form-grid" style={{ alignItems: "end" }}>
@@ -515,7 +515,7 @@ function PeopleCard({ orgId, buildingId }: { orgId: string; buildingId: string }
           label="Role"
           value={role}
           onChange={(e) => setRole(e.target.value as Role)}
-          options={INVITE_ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] ?? r }))}
+          options={roles.map((r) => ({ value: r, label: ROLE_LABELS[r] ?? r }))}
         />
         <div className="full">
           <Button variant="primary" type="submit" loading={busy}>

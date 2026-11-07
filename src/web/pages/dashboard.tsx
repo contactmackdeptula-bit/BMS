@@ -8,6 +8,7 @@ import { Button, Card, ErrorPanel, Notice, PageHeader, Pill, ProgressBar, Skelet
 import { subtitleFor, useChurch } from "./church";
 import { JobSheet, UploadSheet } from "./sheets";
 import { PhoneHome } from "./phone";
+import { EstatesNotesCard } from "./estates";
 
 const BAND_LABEL: Record<string, string> = {
   A: "A · Urgent",
@@ -98,7 +99,10 @@ function DesktopDashboard() {
           <Skeleton height={300} />
         </>
       ) : (
-        <Body data={data} base={base} onLogJob={() => setSheet("job")} />
+        <>
+          <Body data={data} base={base} onLogJob={() => setSheet("job")} />
+          <EstatesNotesCard buildingId={building.id} />
+        </>
       )}
       {sheet === "job" && data && <JobSheet buildingId={building.id} today={data.today} onClose={() => setSheet(null)} onSaved={saved} />}
       {sheet === "upload" && <UploadSheet buildingId={building.id} onClose={() => setSheet(null)} onSaved={saved} />}

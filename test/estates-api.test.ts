@@ -102,6 +102,7 @@ describe("estate overview", () => {
     const csv = new TextDecoder().decode(r.bytes!);
     expect(csv.split("\r\n")[0]).toContain('"Church","Parish","Pastoral area"');
     expect(csv).toContain('"St Test 3"');
+    expect(csv).not.toContain("grade_");
   });
 });
 

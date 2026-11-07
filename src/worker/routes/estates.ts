@@ -33,6 +33,8 @@ estatesRoutes.patch("/:orgId/estate/programmes/:id", async (c) => {
   return c.json({ ok: true });
 });
 
+const LISTING: Record<string, string> = { grade_i: "Grade I", grade_ii_star: "Grade II*", grade_ii: "Grade II", unlisted: "Unlisted", locally_listed: "Locally listed" };
+
 /** The board report: one row per church, as a spreadsheet. */
 estatesRoutes.get("/:orgId/estate/board-report.csv", async (c) => {
   const scope = await readScope(c);
@@ -45,7 +47,7 @@ estatesRoutes.get("/:orgId/estate/board-report.csv", async (c) => {
   const lines = [
     ["Church", "Parish", "Pastoral area", "Listing", "Overdue checks", "Overdue items", "Open A", "Open B", "Backlog midpoint (£)", "Survey due", "Parish contact"].map(cell).join(","),
     ...o.rows.map((r) =>
-      [r.name, r.parish, r.area?.name ?? "", r.listing ?? "", r.overdue.length, r.overdue.join("; "), r.openA, r.openB, Math.round(r.backlogPence / 100), r.surveyDue ?? "", r.contact ? `${r.contact.name} <${r.contact.email}>` : ""]
+      [r.name, r.parish, r.area?.name ?? "", r.listing ? LISTING[r.listing] ?? r.listing : "", r.overdue.length, r.overdue.join("; "), r.openA, r.openB, Math.round(r.backlogPence / 100), r.surveyDue ?? "", r.contact ? `${r.contact.name} <${r.contact.email}>` : ""]
         .map(cell)
         .join(","),
     ),

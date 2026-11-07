@@ -29,7 +29,8 @@ export function Button({ variant = "secondary", size = "md", loading, disabled, 
     children
   );
   if (href) {
-    const internal = href.startsWith("/");
+    // App pages use the router; files from the API (downloads) are plain links.
+    const internal = href.startsWith("/") && !href.startsWith("/api/");
     return internal ? (
       <Link className={cls} to={href} aria-disabled={disabled || undefined} aria-label={rest["aria-label"]}>
         {children}

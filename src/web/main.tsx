@@ -20,7 +20,7 @@ import { DocumentsPage } from "./pages/documents";
 import { JobsPage } from "./pages/jobs";
 import { QuinquennialPage } from "./pages/quinquennial";
 import { ReportsPage } from "./pages/reports";
-import { EstatesComingSoon, EstatesLayout, EstatesOverview } from "./pages/estates";
+import { EstatesBacklog, EstatesBuildings, EstatesContractors, EstatesLayout, EstatesOverview, EstatesProgrammes, EstatesReports, EstatesSpend, EstatesSurveys, EstatesUsers } from "./pages/estates";
 import { RequireSession } from "./session";
 
 const Authed = () => (
@@ -59,7 +59,14 @@ const router = createBrowserRouter([
         element: <EstatesLayout />,
         children: [
           { index: true, element: <EstatesOverview /> },
-          { path: "*", element: <EstatesComingSoon /> },
+          { path: "buildings", element: <EstatesBuildings /> },
+          { path: "surveys", element: <EstatesSurveys /> },
+          { path: "backlog", element: <EstatesBacklog /> },
+          { path: "programmes", element: <EstatesProgrammes /> },
+          { path: "spend", element: <EstatesSpend /> },
+          { path: "contractors", element: <EstatesContractors /> },
+          { path: "reports", element: <EstatesReports /> },
+          { path: "users", element: <EstatesUsers /> },
         ],
       },
     ],
