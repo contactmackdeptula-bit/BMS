@@ -10,6 +10,7 @@ import { complianceRoutes } from "./routes/compliance";
 import { recordRoutes } from "./routes/records";
 import { quinquennialRoutes } from "./routes/quinquennial";
 import { reportRoutes } from "./routes/reports";
+import { estatesRoutes, notesRoutes } from "./routes/estates";
 import { scheduledReminders } from "./reminders";
 import type { Env } from "./env";
 
@@ -47,7 +48,9 @@ app.route("/buildings", complianceRoutes);
 app.route("/buildings", recordRoutes);
 app.route("/buildings", quinquennialRoutes);
 app.route("/buildings", reportRoutes);
+app.route("/buildings", notesRoutes);
 app.route("/orgs", orgRoutes);
+app.route("/orgs", estatesRoutes);
 
 app.get("/health", (c) => c.json({ ok: true }));
 app.notFound((c) => c.json({ error: "Not found" }, 404));
