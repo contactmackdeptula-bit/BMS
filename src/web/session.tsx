@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { Navigate, useLocation } from "react-router";
 import { api, ApiError, type Me } from "./api";
+import { clearQueue, isOffline, lastKnown, pending, startOfflineSync } from "./offline";
 import { ErrorPanel, Skeleton } from "./ui/basics";
 
 type SessionState = { me: Me; reload: () => Promise<void>; signOut: () => Promise<void> };
@@ -20,18 +21,37 @@ export function RequireSession({ children }: { children: ReactNode }) {
 
   const reload = useCallback(async () => {
     try {
-      setMe(await api.get<Me>("/auth/me"));
+      const fresh = await api.get<Me>("/auth/me");
+      setMe(fresh);
+      lastKnown.set("me", fresh);
       setError(null);
     } catch (e) {
-      setError(e as ApiError);
+      // No signal: carry on with who this phone last knew was signed in.
+      const cached = isOffline(e) ? lastKnown.get<Me>("me") : null;
+      if (cached) setMe(cached);
+      else setError(e as ApiError);
     }
   }, []);
   useEffect(() => {
     void reload();
   }, [reload]);
 
+  // Send anything saved on this phone as soon as there's a connection.
+  useEffect(() => {
+    if (!me) return;
+    return startOfflineSync();
+  }, [me]);
+
   const signOut = useCallback(async () => {
+    const waiting = (await pending()).length;
+    if (waiting && !window.confirm(`${waiting} ${waiting === 1 ? "thing hasn't" : "things haven't"} uploaded from this phone yet. Signing out will discard ${waiting === 1 ? "it" : "them"}. Sign out anyway?`)) return;
     await api.post("/auth/logout");
+    await clearQueue();
+    try {
+      Object.keys(localStorage).filter((k) => k.startsWith("fabric:cache:")).forEach((k) => localStorage.removeItem(k));
+    } catch {
+      /* nothing cached */
+    }
     window.location.assign("/login");
   }, []);
 

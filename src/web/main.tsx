@@ -66,6 +66,11 @@ const router = createBrowserRouter([
   },
 ]);
 
+// Keep the app's pages on the phone so it opens with no signal (API data is handled separately).
+if (import.meta.env.PROD && "serviceWorker" in navigator) {
+  window.addEventListener("load", () => void navigator.serviceWorker.register("/sw.js").catch(() => {}));
+}
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <RouterProvider router={router} />

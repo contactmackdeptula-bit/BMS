@@ -209,7 +209,8 @@ export async function listJobs(scope: BuildingScope, filter: { year?: number; st
       ...j,
       contractorName,
       paperwork,
-      awaitingInvoice: j.status === "done" && !paperwork.some((d) => d.type === "invoice"),
+      // Only paid work waits for an invoice: a volunteer job or a contractor's visit with no cost doesn't.
+      awaitingInvoice: j.status === "done" && (j.costPence ?? 0) > 0 && !paperwork.some((d) => d.type === "invoice"),
       logbook,
     };
   });

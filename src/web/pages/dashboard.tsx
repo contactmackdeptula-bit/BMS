@@ -7,6 +7,7 @@ import { AttentionList, AttentionRow, DataTable } from "../ui/data";
 import { Button, Card, ErrorPanel, Notice, PageHeader, Pill, ProgressBar, Skeleton, StatTile } from "../ui/basics";
 import { subtitleFor, useChurch } from "./church";
 import { JobSheet, UploadSheet } from "./sheets";
+import { PhoneHome } from "./phone";
 
 const BAND_LABEL: Record<string, string> = {
   A: "A · Urgent",
@@ -17,7 +18,26 @@ const BAND_LABEL: Record<string, string> = {
 };
 const BAND_TONE = { A: "danger", B: "warn", C: "info", D: "neutral", M: "ok" } as const;
 
+/** True on phone-width screens, where the dashboard becomes "This week" (UI-HANDOFF §5). */
+function useIsPhone() {
+  const q = "(max-width: 799px)";
+  const [phone, setPhone] = useState(() => window.matchMedia(q).matches);
+  useEffect(() => {
+    const m = window.matchMedia(q);
+    const on = () => setPhone(m.matches);
+    m.addEventListener("change", on);
+    return () => m.removeEventListener("change", on);
+  }, []);
+  return phone;
+}
+
 export function DashboardPage() {
+  const { building } = useChurch();
+  const phone = useIsPhone();
+  return phone ? <PhoneHome building={building} /> : <DesktopDashboard />;
+}
+
+function DesktopDashboard() {
   const { building } = useChurch();
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState<ApiError | null>(null);

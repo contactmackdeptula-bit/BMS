@@ -131,6 +131,13 @@ describe("jobs and the logbook", () => {
     expect(docs.find((d: any) => d.id === cert).usedFor.sort()).toEqual(["Boiler annual service", "Gas boiler service and safety check"]);
   });
 
+  it("doesn't wait for an invoice on unpaid work, such as a contractor's visit", async () => {
+    const r = await warden.post(`/api/buildings/${church}/jobs`, { title: "Visit by Roof Co", doneOn: today, contractorId: roofer });
+    const j = (await warden.get(`/api/buildings/${church}/jobs`)).json.jobs.find((x: any) => x.id === r.json.id);
+    expect(j.awaitingInvoice).toBe(false);
+    await warden.post(`/api/buildings/${church}/jobs/${r.json.id}/delete`);
+  });
+
   it("plans a job without a date, then completes it", async () => {
     const r = await warden.post(`/api/buildings/${church}/jobs`, { title: "Repoint parapet", status: "planned" });
     expect(r.status).toBe(201);

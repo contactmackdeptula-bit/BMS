@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation, useOutletContext, useParams } from "reac
 import { api, ApiError, type Building, type BuildingAccess, type Role } from "../api";
 import { LISTING_LABELS, ROLE_LABELS, formatDate } from "../format";
 import { lastBuilding, useSession } from "../session";
+import { isOffline, lastKnown } from "../offline";
 import { Button, Card, ErrorPanel, Notice, PageHeader, Skeleton } from "../ui/basics";
 import { DataTable } from "../ui/data";
 import { Checkbox, DateInput, Input, Select } from "../ui/forms";
@@ -88,7 +89,15 @@ export function ChurchLayout() {
   const load = useCallback(async () => {
     try {
       setError(null);
-      setData(await api.get(`/buildings/${buildingId}`));
+      try {
+        const fresh = await api.get<{ building: Building; access: BuildingAccess }>(`/buildings/${buildingId}`);
+        setData(fresh);
+        lastKnown.set(`building:${buildingId}`, fresh);
+      } catch (e) {
+        const cached = isOffline(e) ? lastKnown.get<{ building: Building; access: BuildingAccess }>(`building:${buildingId}`) : null;
+        if (!cached) throw e;
+        setData(cached);
+      }
       lastBuilding.set(me.user.id, buildingId);
     } catch (e) {
       setError(e as ApiError);

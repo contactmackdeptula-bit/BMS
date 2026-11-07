@@ -174,6 +174,8 @@ id, orgId, buildingId, documentId, inspectedOn, inspectorName, pageCount, nextDu
 id, orgId, name, trade, contactName, phone, email, website, notes, accreditation (text, null). Contractors belong to the organisation; a diocese's contractor list is separate from a parish's.
 
 ### job
+Awaiting invoice = done, cost above zero, no invoice document (unpaid visits and volunteer work don't wait for one).
+
 id, orgId, buildingId, title, doneOn, contractorId (null), costPence (null), status (`planned` \| `done`), taskId (null), complianceOccurrenceId (null), instructedByOrgId (null), notes. Linked documents via `jobDocument(jobId, documentId)`.
 
 ### logbookEntry
@@ -255,7 +257,7 @@ Each milestone is shippable to the pilot churches before the next starts. Front-
 | M3 | Jobs, contractors, documents, dashboard | Job log (planned and done, paperwork, awaiting-invoice flag, yearly spend; a job can also record a compliance check), organisation-wide contractor book, documents list with expiry and where each is used, draft logbook entries approved by churchwardens, church dashboard with setup steps for a new building | 4, 5 |
 | M4 | Quinquennial | **Built 6 Nov 2026 with manual entry:** upload, review step (report in `review`, items typed in), publish (newer inspection becomes `current`, older filed as `previous`), task table grouped by band/location/trade, permission flags, waiting-on links, done only via a logged job, routine (M) items onto the calendar, the inspection recorded on the calendar with the report as evidence. **Still to do:** queued AI extraction into the same review step (Claude Haiku 5.5 first, Sonnet 5.5 for low-confidence reports), page images beside flagged items, the extraction test suite of real reports, and "Get quotes" emails to contractors | 6 |
 | M5 | Annual fabric report | **Built 7 Nov 2026:** builder with live preview from one shared text function, draft saved per year, suggested matters confirmed or left out (never exported unconfirmed), terrier confirmation, Word and PDF exports (footer, signature block, logbook appendix) each saved to Documents | 7 |
-| M6 | Phone and offline | Responsive phone layout, This week, checklists, camera logging, offline queue | 8 |
+| M6 | Phone and offline | **Built 7 Nov 2026:** under 800 px the dashboard becomes This week (needs doing, monthly light test as a tick list saving partial results, four quick-log buttons, confirmation panel). Photos resized to 2,000 px before upload. Offline: last-known copies of the session, building and This week data in localStorage; ticks, jobs, photos and documents queue in IndexedDB and send when the connection returns; a service worker keeps the app shell. Sign-out clears the phone's copies and queue (warning first if anything is unsent). Known limit: if a request reaches the server but the reply is lost, the retry can save it twice | 8 |
 | M7 | Estates console and document reading | Organisation tree, aggregates, survey cycle, programmes, estates notes and sharing; document reading; AI usage meter | 9, 10 |
 
 ---

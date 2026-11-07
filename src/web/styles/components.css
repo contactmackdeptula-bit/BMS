@@ -1154,3 +1154,62 @@ textarea.control {
     padding: 24px 20px;
   }
 }
+
+/* ---------- Phone: This week ---------- */
+.needs-list {
+  display: flex;
+  flex-direction: column;
+}
+.needs-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink);
+  text-decoration: none;
+  min-height: 44px;
+}
+.needs-row:first-child {
+  border-top: 0;
+}
+.needs-row .dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  border-radius: var(--radius-pill);
+}
+.needs-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.needs-text span {
+  font-size: var(--text-base-size);
+  color: var(--ink-muted);
+}
+.log-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.log-button {
+  min-height: 64px;
+  padding: 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: var(--text-base-size);
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  text-align: left;
+  color: var(--ink);
+}
+.log-button:hover {
+  background: var(--ground);
+}
